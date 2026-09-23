@@ -34,6 +34,8 @@ body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f
 .month-progress .month-label { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
 .month-progress .month-label .name { font-weight: 600; }
 .month-progress .month-label .amount { color: #666; }
+.month-progress .month-label .remain { font-weight: 600; color: #52c41a; margin-left: 10px; }
+.month-progress .month-label .remain.over { color: #f5222d; }
 .progress-bar { height: 24px; background: #f0f0f0; border-radius: 12px; overflow: hidden; position: relative; }
 .progress-fill { height: 100%; border-radius: 12px; transition: width 0.6s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: 11px; color: #fff; font-weight: 600; }
 .progress-fill.safe { background: linear-gradient(90deg, #52c41a, #73d13d); }
@@ -65,7 +67,7 @@ tr:hover td { background: #e6f7ff; }
 <body>
 <div class="header">
 <h1>ADS黑贤组 预算进度看板</h1>
-<p>月度预算：26万元 | 数据来源：任务汇总表「7月往后」sheet | 最后刷新：2026-09-23 15:32</p>
+<p>月度预算：26万元 | 数据来源：任务汇总表「7月往后」sheet | 最后刷新：2026-09-23 15:42</p>
 </div>
 
 <div class="controls">
@@ -171,10 +173,11 @@ function renderProgress(filtered) {
   let html = '';
   showMonths.forEach(m => {
     const mTotal = filtered.filter(r=>r.month===m).reduce((s,r)=>s+r.amount, 0);
+    const remain = BUDGET - mTotal;
     const pct = Math.min(mTotal/BUDGET*100, 100);
     const cls = pct > 90 ? 'danger' : pct > 70 ? 'warn' : 'safe';
     html += `<div class="month-progress">
-      <div class="month-label"><span class="name">${m}</span><span class="amount">&yen;${fmt(mTotal)} / &yen;${fmt(BUDGET)} (${(mTotal/BUDGET*100).toFixed(1)}%)</span></div>
+      <div class="month-label"><span class="name">${m}</span><span class="amount">已用 &yen;${fmt(mTotal)} / &yen;${fmt(BUDGET)} (${(mTotal/BUDGET*100).toFixed(1)}%)<span class="remain ${remain<0?'over':''}">剩余可使用 &yen;${fmt(remain)}</span></span></div>
       <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pct}%">${pct>15?(mTotal/BUDGET*100).toFixed(0)+'%':''}</div></div>
     </div>`;
   });
