@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADS黑贤组 预算进度看板</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #333; padding: 20px; }
+.header { text-align: center; margin-bottom: 24px; }
+.header h1 { font-size: 24px; color: #1a1a2e; margin-bottom: 4px; }
+.header p { color: #666; font-size: 14px; }
+.controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+.controls select, .controls input { padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; background: #fff; }
+.controls select:focus, .controls input:focus { outline: none; border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.1); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.card .label { font-size: 13px; color: #888; margin-bottom: 8px; }
+.card .value { font-size: 26px; font-weight: 700; }
+.card .sub { font-size: 12px; color: #999; margin-top: 4px; }
+.card.green .value { color: #52c41a; }
+.card.blue .value { color: #1890ff; }
+.card.orange .value { color: #fa8c16; }
+.card.red .value { color: #f5222d; }
+.card.purple .value { color: #722ed1; }
+.progress-section { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.progress-section h3 { font-size: 16px; margin-bottom: 16px; color: #1a1a2e; }
+.month-progress { margin-bottom: 16px; }
+.month-progress .month-label { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+.month-progress .month-label .name { font-weight: 600; }
+.month-progress .month-label .amount { color: #666; }
+.progress-bar { height: 24px; background: #f0f0f0; border-radius: 12px; overflow: hidden; position: relative; }
+.progress-fill { height: 100%; border-radius: 12px; transition: width 0.6s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: 11px; color: #fff; font-weight: 600; }
+.progress-fill.safe { background: linear-gradient(90deg, #52c41a, #73d13d); }
+.progress-fill.warn { background: linear-gradient(90deg, #fa8c16, #ffa940); }
+.progress-fill.danger { background: linear-gradient(90deg, #f5222d, #ff4d4f); }
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+@media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+.chart-box { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.chart-box h3 { font-size: 15px; margin-bottom: 12px; color: #1a1a2e; }
+.table-section { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.table-section h3 { font-size: 16px; margin-bottom: 16px; color: #1a1a2e; }
+.table-wrap { overflow-x: auto; max-height: 600px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #fafafa; padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e8e8e8; white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; }
+tr:hover td { background: #e6f7ff; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.tag-p0 { background: #fff1f0; color: #cf1322; }
+.tag-p1 { background: #e6f7ff; color: #096dd9; }
+.tag-settled { background: #f6ffed; color: #389e0d; }
+.tag-pending { background: #fff7e6; color: #d46b08; }
+.tag-progress { background: #f9f0ff; color: #531dab; }
+.tag-delivered { background: #e6fffb; color: #08979c; }
+.amount-cell { font-weight: 600; font-family: "SF Mono", "Consolas", monospace; }
+.summary-row td { font-weight: 700; background: #fafafa !important; border-top: 2px solid #e8e8e8; }
+.legend-hint { font-size: 12px; color: #999; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="header">
+<h1>ADS黑贤组 预算进度看板</h1>
+<p>月度预算：26万元 | 数据来源：任务汇总表「7月往后」sheet | 最后刷新：2026-09-23 13:44</p>
+</div>
+
+<div class="controls">
+<select id="monthFilter"><option value="all">全部月份</option></select>
+<select id="projectFilter"><option value="all">全部子项目</option></select>
+<select id="requesterFilter"><option value="all">全部提需人</option></select>
+<select id="statusFilter"><option value="all">全部状态</option></select>
+<input type="text" id="searchBox" placeholder="搜索任务包名称...">
+</div>
+
+<div class="cards" id="summaryCards"></div>
+
+<div class="progress-section">
+<h3>月度预算使用进度</h3>
+<div id="progressBars"></div>
+<p class="legend-hint">绿色 &lt;70% | 橙色 70%-90% | 红色 &gt;90%</p>
+</div>
+
+<div class="charts-row">
+<div class="chart-box"><h3>子项目金额分布</h3><canvas id="pieChart"></canvas></div>
+<div class="chart-box"><h3>月度趋势（预算 vs 实际）</h3><canvas id="barChart"></canvas></div>
+</div>
+
+<div class="table-section">
+<h3>任务明细 <span id="tableCount" style="font-weight:400;color:#888;font-size:13px;"></span></h3>
+<div class="table-wrap">
+<table id="detailTable">
+<thead><tr>
+<th>填写日期</th><th>子项目</th><th>子任务包名称</th><th>提需人</th><th>数据量级</th><th>单位</th><th>结算金额(元)</th><th>状态</th>
+</tr></thead>
+<tbody id="tableBody"></tbody>
+<tfoot id="tableFoot"></tfoot>
+</table>
+</div>
+</div>
+
+<script>
+const RAW = [{"date":"2026-06-16","month":"2026-06","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"编辑数据清洗","priority":"P1","requester":"君未","volume":"约9万多","unit":"","status":"待结算","amount":13297.07,"settled":""},{"date":"2026-06-29","month":"2026-06","project":"coco视频项目","detail":"商品一致性","taskName":"商品一致性标注-3output-0630","priority":"P1","requester":"李岁缠","volume":"5397","unit":"图","status":"已结算","amount":10794.0,"settled":"是"},{"date":"2026-06-29","month":"2026-06","project":"淘宝千问穿搭项目","detail":"服装上身效果测试","taskName":"服饰上身评测","priority":"P1","requester":"郭璟","volume":"127","unit":"人时","status":"已结算","amount":381.0,"settled":"是"},{"date":"2026-07-01","month":"2026-07","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性标注 单图tryon","priority":"P1","requester":"临宙","volume":"1178","unit":"图","status":"已结算","amount":2650.5,"settled":"是"},{"date":"2026-07-01","month":"2026-07","project":"绘蛙服饰类数据标注","detail":"长度变化数据评测","taskName":"长度变化数据可用性标注","priority":"P1","requester":"玄彻","volume":"41849","unit":"图","status":"已结算","amount":5231.125,"settled":"是"},{"date":"2026-07-01","month":"2026-07","project":"淘宝千问穿搭项目","detail":"生图评测","taskName":"生图评测","priority":"P0","requester":"福按","volume":"","unit":"人时","status":"已结算","amount":4560.0,"settled":"是"},{"date":"2026-07-07","month":"2026-07","project":"绘蛙服饰类数据标注","detail":"长度变化数据评测","taskName":"长度变化数据可用性标注第二批","priority":"P0","requester":"玄彻","volume":"31752","unit":"图","status":"已结算","amount":3969.0,"settled":"是"},{"date":"2026-07-14","month":"2026-07","project":"coco视频项目","detail":"商品一致性","taskName":"一致性标注-双图输入-单人标注-0714","priority":"P1","requester":"李岁缠","volume":"1852","unit":"图","status":"已结算","amount":3704.0,"settled":"是"},{"date":"2026-07-14","month":"2026-07","project":"coco视频项目","detail":"商品一致性","taskName":"一致性标注-单图输入-单人标注-0714","priority":"P1","requester":"李岁缠","volume":"1146","unit":"图","status":"已结算","amount":2292.0,"settled":"是"},{"date":"2026-07-17","month":"2026-07","project":"淘宝千问穿搭项目","detail":"视频评测","taskName":"商品&模特替换 评测","priority":"P1","requester":"吉芈","volume":"128","unit":"人时","status":"已结算","amount":960.0,"settled":"是"},{"date":"2026-07-17","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0716-数据清洗-Tab2-0702_matched_clean","priority":"P1","requester":"李岁缠","volume":"9816","unit":"图","status":"已结算","amount":11779.2,"settled":"是"},{"date":"2026-07-17","month":"2026-07","project":"coco视频项目","detail":"服饰场景判断","taskName":"0717-TAB2-服饰人物场景判断人物","priority":"P1","requester":"沐水","volume":"726","unit":"图","status":"已结算","amount":508.2,"settled":"是"},{"date":"2026-07-20","month":"2026-07","project":"绘蛙服饰类数据标注","detail":"一致性和坐标判断","taskName":"一致性和坐标逻辑判断","priority":"P1","requester":"玄彻","volume":"42498","unit":"图","status":"已结算","amount":8924.58,"settled":"是"},{"date":"2026-07-20","month":"2026-07","project":"绘蛙服饰类数据标注","detail":"一致性和坐标判断","taskName":"仅坐标判断修正","priority":"P1","requester":"玄彻","volume":"待定","unit":"图","status":"已结算","amount":19044.72,"settled":"是"},{"date":"2026-07-20","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0720-数据清洗-tab2_gpt_0701_v2","priority":"P1","requester":"李岁缠","volume":"4681","unit":"图","status":"已结算","amount":5617.2,"settled":"是"},{"date":"2026-07-20","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0717-数据清洗-Feeds_single_image_2k","priority":"P1","requester":"李岁缠","volume":"2228*2","unit":"图","status":"已结算","amount":6684.0,"settled":"是"},{"date":"2026-07-23","month":"2026-07","project":"绘蛙服饰类数据标注","detail":"数据配对","taskName":"高清面料配对数据标注","priority":"P1","requester":"玄彻","volume":"125428","unit":"图","status":"已结算","amount":20946.476,"settled":"是"},{"date":"2026-07-22","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0722-数据清洗-Feeds_Product_Scene_Genenerate","priority":"P1","requester":"李岁缠","volume":"4693*2","unit":"图","status":"已结算","amount":14079.0,"settled":"是"},{"date":"2026-07-22","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0722-数据清洗-Feeds_scene_xhs_style_single_recaption","priority":"P1","requester":"李岁缠","volume":"985*2","unit":"图","status":"已结算","amount":2955.0,"settled":"是"},{"date":"2026-07-22","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0722-数据清洗-tab2_SFT3","priority":"P1","requester":"李岁缠","volume":"8767*2","unit":"图","status":"已结算","amount":21040.8,"settled":"是"},{"date":"2026-07-24","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0724-数据清洗-Feeds_single_image_7k_recaption","priority":"P1","requester":"李岁缠","volume":"7262*2","unit":"图","status":"已结算","amount":21786.0,"settled":"是"},{"date":"2026-07-28","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0728-数据清洗-tab2_0723_highres","priority":"P1","requester":"李岁缠","volume":"9303","unit":"图","status":"已结算","amount":16745.4,"settled":"是"},{"date":"2026-08-03","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0803-Subject_Driven_Generate_SR_single","priority":"P1","requester":"李岁缠","volume":"7245*2","unit":"图","status":"待结算","amount":9600.0,"settled":""},{"date":"2026-08-03","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0803-sellerpoint_GptImage2_passed","priority":"P1","requester":"李岁缠","volume":"2891*2","unit":"图","status":"待结算","amount":21735.0,"settled":""},{"date":"2026-07-28","month":"2026-07","project":"coco视频项目","detail":"商品一致性","taskName":"商品一致性标注-078-top3000_variance","priority":"P1","requester":"李岁缠","volume":"500","unit":"图","status":"已结算","amount":1000.0,"settled":"是"},{"date":"2026-07-29","month":"2026-07","project":"coco视频项目","detail":"商品一致性","taskName":"商品一致性标注-0729-top3000_variance","priority":"P1","requester":"李岁缠","volume":"2000","unit":"","status":"待结算","amount":4000.0,"settled":""},{"date":"2026-07-31","month":"2026-07","project":"coco视频项目","detail":"商品一致性","taskName":"0731商品一致性标注","priority":"P1","requester":"李岁缠","volume":"5877","unit":"图","status":"已结算","amount":11754.0,"settled":"是"},{"date":"2026-07-31","month":"2026-07","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性标注-单图Tryon-v2-0730","priority":"P1","requester":"临宙","volume":"1020","unit":"图","status":"已结算","amount":1530.0,"settled":"是"},{"date":"2026-08-06","month":"2026-08","project":"绘蛙服饰类数据标注","detail":"服装穿法标注","taskName":"服装穿法标注","priority":"P0","requester":"玄彻","volume":"36017","unit":"图","status":"已结算","amount":4502.125,"settled":"是"},{"date":"2026-08-06","month":"2026-08","project":"淘宝千问穿搭项目","detail":"视频评测","taskName":"多模型评测","priority":"P0","requester":"吉芈","volume":"50","unit":"人时","status":"已结算","amount":600.0,"settled":"是"},{"date":"2026-08-10","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0810-sellerpoint_GptImage2_v2_passed","priority":"P1","requester":"李岁缠","volume":"5719*2","unit":"图","status":"待结算","amount":17157.0,"settled":""},{"date":"2026-08-10","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0810-Subject_Driven_Generate_SR","priority":"P1","requester":"李岁缠","volume":"8833*2","unit":"图","status":"待结算","amount":26499.0,"settled":""},{"date":"2026-08-06","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性标注-单图tryon-ai提示-0806","priority":"P1","requester":"临宙","volume":"3931","unit":"图","status":"已结算","amount":5896.5,"settled":"是"},{"date":"2026-08-06","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"0806-feeds-noconsis","priority":"P1","requester":"李岁缠","volume":"766","unit":"图","status":"已结算","amount":1532.0,"settled":"是"},{"date":"2026-08-06","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"consistency_dpo0731","priority":"P1","requester":"李岁缠","volume":"1877","unit":"图","status":"已结算","amount":3754.0,"settled":"是"},{"date":"2026-08-06","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"0806_product_bg_sellerpoint","priority":"P1","requester":"李岁缠","volume":"1488","unit":"图","status":"已结算","amount":2976.0,"settled":"是"},{"date":"2026-08-07","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"0807_consistency_dpo3out","priority":"P1","requester":"李岁缠","volume":"3126","unit":"图","status":"已结算","amount":6252.0,"settled":"是"},{"date":"2026-08-11","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性标注-单图tryon-ai提示-0811","priority":"P1","requester":"临宙","volume":"6985","unit":"图","status":"已结算","amount":10477.5,"settled":"是"},{"date":"2026-08-13","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"fv3_T1350_B_gt_gemini_v4fmt","priority":"P1","requester":"李岁缠","volume":"2643","unit":"图","status":"待结算","amount":5286.0,"settled":""},{"date":"2026-08-13","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"fv3_T1350_A_infer_gemini_v4fmt","priority":"P1","requester":"李岁缠","volume":"2658","unit":"图","status":"待结算","amount":5316.0,"settled":""},{"date":"2026-08-14","month":"2026-08","project":"淘宝千问穿搭项目","detail":"配对差异标注需求","taskName":"配对差异标注需求","priority":"P1","requester":"郭璟","volume":"10000","unit":"图","status":"已结算","amount":20000.0,"settled":"是"},{"date":"2026-08-17","month":"2026-08","project":"绘蛙服饰类数据标注","detail":"20260817难负例标注","taskName":"20260817难负例标注","priority":"P1","requester":"开元","volume":"1000","unit":"图","status":"已结算","amount":330.0,"settled":"是"},{"date":"2026-08-19","month":"2026-08","project":"coco视频项目","detail":"文字标注","taskName":"文字标注1","priority":"P1","requester":"潘恒","volume":"1921","unit":"图","status":"已结算","amount":1152.6,"settled":"是"},{"date":"2026-08-19","month":"2026-08","project":"coco视频项目","detail":"文字标注","taskName":"文字标注2","priority":"P1","requester":"潘恒","volume":"2567","unit":"图","status":"已结算","amount":1540.2,"settled":"是"},{"date":"2026-08-19","month":"2026-08","project":"coco视频项目","detail":"文字标注","taskName":"文字标注3","priority":"P1","requester":"潘恒","volume":"1571","unit":"图","status":"已结算","amount":942.6,"settled":"是"},{"date":"2026-08-20","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0820-sellerpoint_withRef_GPT_passed","priority":"P1","requester":"李岁缠","volume":"977*2","unit":"图","status":"待结算","amount":2931.0,"settled":""},{"date":"2026-08-20","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0820-Subject_Driven_Generate_NanoPro_2K_passed","priority":"P1","requester":"李岁缠","volume":"561*2","unit":"图","status":"待结算","amount":1683.0,"settled":""},{"date":"2026-08-20","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0810-sellerpoint_GPT_mingcheng_passed","priority":"P1","requester":"李岁缠","volume":"846*2","unit":"图","status":"待结算","amount":2538.0,"settled":""},{"date":"2026-08-20","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0820-Subject_Driven_Generate_NanoPro_passed","priority":"P1","requester":"李岁缠","volume":"939*2","unit":"图","status":"待结算","amount":2817.0,"settled":""},{"date":"2026-08-20","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0820-sellerpoint_xhs_double_passed","priority":"P1","requester":"李岁缠","volume":"948*2","unit":"图","status":"待结算","amount":2844.0,"settled":""},{"date":"2026-08-17","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性TryOn任务标注-0817","priority":"P1","requester":"临宙","volume":"3169","unit":"图","status":"待结算","amount":4753.5,"settled":""},{"date":"2026-08-20","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性标注-单图Tryon-v2-0820","priority":"P1","requester":"临宙","volume":"540*3","unit":"图","status":"待结算","amount":2430.0,"settled":""},{"date":"2026-08-21","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"all_data_complex_B_gt","priority":"P1","requester":"李岁缠","volume":"3575","unit":"图","status":"待结算","amount":7150.0,"settled":""},{"date":"2026-08-24","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性tryon数据标注-0824","priority":"P1","requester":"临宙","volume":"2812*2","unit":"图","status":"待结算","amount":8436.0,"settled":""},{"date":"2026-08-24","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"all_data_complex_A_dpo_gemini","priority":"P1","requester":"李岁缠","volume":"3569","unit":"图","status":"待结算","amount":7138.0,"settled":""},{"date":"2026-08-26","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性tryon数据标注-0826 - 下装","priority":"P1","requester":"临宙","volume":"1500*2","unit":"图","status":"待结算","amount":4500.0,"settled":""},{"date":"2026-08-24","month":"2026-08","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"编辑数据不通过拉框","priority":"P1","requester":"君未","volume":"19942","unit":"","status":"待结算","amount":9971.0,"settled":""},{"date":"2026-08-24","month":"2026-08","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"20260602_residue_data_annotation编辑数据新增属性判断","priority":"P1","requester":"君未","volume":"1941","unit":"","status":"待结算","amount":517.27,"settled":""},{"date":"2026-08-27","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性数据标注 - 0827 - 上装1k","priority":"P1","requester":"临宙","volume":"1000*2","unit":"","status":"待结算","amount":3000.0,"settled":""},{"date":"2026-08-28","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性数据标注 - 0828 - 上装2k","priority":"P1","requester":"临宙","volume":"2000*2","unit":"","status":"待结算","amount":6000.0,"settled":""},{"date":"2026-08-31","month":"2026-08","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"20260610_fit_data_pose_filtered_annotation编辑新增属性判断","priority":"P1","requester":"君未","volume":"6751","unit":"","status":"待结算","amount":1775.77,"settled":""},{"date":"2026-08-31","month":"2026-08","project":"coco视频项目","detail":"数据清洗","taskName":"sellerpoint-0831-绘蛙线上_参考图生卖点_df_2026080","priority":"P1","requester":"李岁缠","volume":"11032*2","unit":"","status":"待结算","amount":33096.0,"settled":""},{"date":"2026-08-31","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性数据标注 - 0831 - 上装","priority":"P1","requester":"临宙","volume":"3231*2","unit":"","status":"待结算","amount":9693.0,"settled":""},{"date":"2026-09-01","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260617_print_data_pose_filtered_annotation编辑新增属性判断","priority":"P1","requester":"君未","volume":"2766","unit":"","status":"待结算","amount":729.82,"settled":""},{"date":"2026-09-01","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260613_hallucination_data_pose_filtered_annotation编辑新增属性判断","priority":"P1","requester":"君未","volume":"5491","unit":"","status":"待结算","amount":1463.77,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"商品一致性","taskName":"muchen-data-positive","priority":"P1","requester":"张骞","volume":"871","unit":"","status":"待结算","amount":1742.0,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"数据清洗-poster-0902","priority":"P1","requester":"李岁缠","volume":"3279*2","unit":"","status":"待结算","amount":9837.0,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"数据清洗-mixedit-0902-mix_edit_part1_merged","priority":"P1","requester":"李岁缠","volume":"13974","unit":"","status":"待结算","amount":25153.2,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"数据清洗-mixedit-0902-mix_edit_part2_merged","priority":"P1","requester":"李岁缠","volume":"1761","unit":"","status":"待结算","amount":3169.8,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"数据清洗-商品背景注入-0902-商品背景注入_merged","priority":"P1","requester":"李岁缠","volume":"3460*2","unit":"","status":"待结算","amount":10380.0,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"数据清洗-huiwa-nanopro-0902","priority":"P1","requester":"李岁缠","volume":"7802","unit":"","status":"待结算","amount":14043.6,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"数据清洗-0902-换脸-换模特","priority":"P1","requester":"李岁缠","volume":"4598*2","unit":"","status":"待结算","amount":15817.12,"settled":""},{"date":"2026-09-04","month":"2026-09","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性标注 - 0904 - 裙装1k - testcase","priority":"P1","requester":"临宙","volume":"1000*2","unit":"","status":"待结算","amount":2340.0,"settled":""},{"date":"2026-09-07","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260616_functional_data_pose_filtered_annotation编辑清洗新增属性判断","priority":"P1","requester":"君未","volume":"5796","unit":"","status":"待结算","amount":1505.12,"settled":""},{"date":"2026-09-07","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260618_artifact_data_pose_filtered_annotation编辑清洗新增属性判断","priority":"P1","requester":"君未","volume":"3233","unit":"","status":"待结算","amount":859.71,"settled":""},{"date":"2026-09-07","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260612_fine_data_pose_filtered_annotation编辑新增属性判断","priority":"P1","requester":"君未","volume":"3606","unit":"","status":"待结算","amount":954.42,"settled":""},{"date":"2026-09-07","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260614_mirror_data_pose_filtered_annotation编辑新增属性判断","priority":"P1","requester":"君未","volume":"2674","unit":"","status":"待结算","amount":704.58,"settled":""},{"date":"2026-09-07","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260615_noreplace_data_pose_filtered_annotation编辑新增属性判断","priority":"P1","requester":"君未","volume":"2278","unit":"","status":"待结算","amount":593.26,"settled":""},{"date":"2026-09-08","month":"2026-09","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性tryon数据标注-0908 - 下装v2","priority":"P1","requester":"临宙","volume":"4500*2","unit":"","status":"待结算","amount":10530.0,"settled":""},{"date":"2026-09-10","month":"2026-09","project":"coco视频项目","detail":"[RL错字识别]标注","taskName":"[RL错字识别]标注","priority":"P1","requester":"曾凡高","volume":"1849","unit":"","status":"进行中","amount":500.0,"settled":""},{"date":"2026-09-15","month":"2026-09","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性tryon数据标注-0915 - 裙装","priority":"P1","requester":"临宙","volume":"5000*2","unit":"","status":"已交付","amount":11700.0,"settled":""},{"date":"2026-09-17","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"文生卖点-huiwa-线上采纳-df_20260909_70972e","priority":"P1","requester":"李岁缠","volume":"8045*2","unit":"","status":"进行中","amount":27674.8,"settled":""},{"date":"2026-09-19","month":"2026-09","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性tryon数据标注-0919 - 男上装","priority":"P1","requester":"临宙","volume":"4000*2","unit":"","status":"进行中","amount":9360.0,"settled":""},{"date":"2026-09-21","month":"2026-09","project":"coco视频项目","detail":"商品一致性","taskName":"关注AI账号-0901-0921-head5k","priority":"P1","requester":"曾凡高","volume":"5000*2","unit":"","status":"进行中","amount":20000.0,"settled":""}];
+const BUDGET = 260000;
+
+const months = [...new Set(RAW.map(r=>r.month).filter(Boolean))].sort();
+const projects = [...new Set(RAW.map(r=>r.project).filter(Boolean))].sort();
+const requesters = [...new Set(RAW.map(r=>r.requester).filter(Boolean))].sort();
+const statuses = [...new Set(RAW.map(r=>r.status).filter(Boolean))].sort();
+
+months.forEach(m => document.getElementById('monthFilter').innerHTML += `<option value="${m}">${m}</option>`);
+projects.forEach(p => document.getElementById('projectFilter').innerHTML += `<option value="${p}">${p}</option>`);
+requesters.forEach(r => document.getElementById('requesterFilter').innerHTML += `<option value="${r}">${r}</option>`);
+statuses.forEach(s => document.getElementById('statusFilter').innerHTML += `<option value="${s}">${s}</option>`);
+
+function getFiltered() {
+  const mf = document.getElementById('monthFilter').value;
+  const pf = document.getElementById('projectFilter').value;
+  const rf = document.getElementById('requesterFilter').value;
+  const sf = document.getElementById('statusFilter').value;
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  return RAW.filter(r => {
+    if (mf !== 'all' && r.month !== mf) return false;
+    if (pf !== 'all' && r.project !== pf) return false;
+    if (rf !== 'all' && r.requester !== rf) return false;
+    if (sf !== 'all' && r.status !== sf) return false;
+    if (q && !r.taskName.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function fmt(n) { return n.toLocaleString('zh-CN', {minimumFractionDigits:0, maximumFractionDigits:2}); }
+
+function renderCards(filtered) {
+  const total = filtered.reduce((s,r)=>s+r.amount, 0);
+  const settled = filtered.filter(r=>r.settled==='是').reduce((s,r)=>s+r.amount, 0);
+  const pending = total - settled;
+  const monthFilter = document.getElementById('monthFilter').value;
+  const budget = monthFilter === 'all' ? BUDGET * months.length : BUDGET;
+  const rate = budget > 0 ? (total/budget*100) : 0;
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="card blue"><div class="label">已使用金额</div><div class="value">&yen;${fmt(total)}</div><div class="sub">共 ${filtered.length} 条任务</div></div>
+    <div class="card ${rate>90?'red':rate>70?'orange':'green'}"><div class="label">预算使用率</div><div class="value">${rate.toFixed(1)}%</div><div class="sub">预算总额 &yen;${fmt(budget)}</div></div>
+    <div class="card green"><div class="label">已结算</div><div class="value">&yen;${fmt(settled)}</div><div class="sub">占比 ${total>0?(settled/total*100).toFixed(1):0}%</div></div>
+    <div class="card orange"><div class="label">待结算</div><div class="value">&yen;${fmt(pending)}</div><div class="sub">占比 ${total>0?(pending/total*100).toFixed(1):0}%</div></div>
+    <div class="card purple"><div class="label">剩余预算</div><div class="value">&yen;${fmt(Math.max(0, budget-total))}</div><div class="sub">${budget-total<0?'⚠️ 已超支':'可用余额'}</div></div>
+  `;
+}
+
+function renderProgress(filtered) {
+  const container = document.getElementById('progressBars');
+  const monthFilter = document.getElementById('monthFilter').value;
+  const showMonths = monthFilter === 'all' ? months : [monthFilter];
+  let html = '';
+  showMonths.forEach(m => {
+    const mTotal = filtered.filter(r=>r.month===m).reduce((s,r)=>s+r.amount, 0);
+    const pct = Math.min(mTotal/BUDGET*100, 100);
+    const cls = pct > 90 ? 'danger' : pct > 70 ? 'warn' : 'safe';
+    html += `<div class="month-progress">
+      <div class="month-label"><span class="name">${m}</span><span class="amount">&yen;${fmt(mTotal)} / &yen;${fmt(BUDGET)} (${(mTotal/BUDGET*100).toFixed(1)}%)</span></div>
+      <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pct}%">${pct>15?(mTotal/BUDGET*100).toFixed(0)+'%':''}</div></div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+let pieChart = null, barChart = null;
+function renderCharts(filtered) {
+  const projMap = {};
+  filtered.forEach(r => { projMap[r.project] = (projMap[r.project]||0) + r.amount; });
+  const projLabels = Object.keys(projMap).sort((a,b)=>projMap[b]-projMap[a]);
+  const projValues = projLabels.map(k=>projMap[k]);
+  const colors = ['#1890ff','#52c41a','#fa8c16','#722ed1','#f5222d','#13c2c2','#eb2f96','#faad14','#2f54eb','#a0d911'];
+
+  if(pieChart) pieChart.destroy();
+  pieChart = new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: { labels: projLabels, datasets: [{ data: projValues, backgroundColor: colors.slice(0, projLabels.length) }] },
+    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: {size:11} } } } }
+  });
+
+  const monthFilter = document.getElementById('monthFilter').value;
+  const showMonths = monthFilter === 'all' ? months : [monthFilter];
+  const actualByMonth = showMonths.map(m => filtered.filter(r=>r.month===m).reduce((s,r)=>s+r.amount, 0));
+
+  if(barChart) barChart.destroy();
+  barChart = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: showMonths,
+      datasets: [
+        { label: '实际使用', data: actualByMonth, backgroundColor: '#1890ff', borderRadius: 4 },
+        { label: '月度预算', data: showMonths.map(()=>BUDGET), type: 'line', borderColor: '#f5222d', borderDash: [5,5], pointRadius: 4, fill: false }
+      ]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { callback: v=>'¥'+(v/10000).toFixed(0)+'万' } } }, plugins: { legend: { position: 'bottom' } } }
+  });
+}
+
+function renderTable(filtered) {
+  const sorted = [...filtered].sort((a,b) => b.date.localeCompare(a.date) || b.amount - a.amount);
+  let html = '';
+  sorted.forEach(r => {
+    const pTag = r.priority === 'P0' ? 'tag-p0' : 'tag-p1';
+    let sTag = 'tag-pending', sText = r.status;
+    if (r.settled === '是') { sTag = 'tag-settled'; }
+    else if (r.status === '进行中') { sTag = 'tag-progress'; }
+    else if (r.status === '已交付') { sTag = 'tag-delivered'; }
+    html += `<tr>
+      <td>${r.date}</td>
+      <td>${r.project}</td>
+      <td title="${r.taskName}">${r.taskName.length>35 ? r.taskName.slice(0,35)+'...' : r.taskName}</td>
+      <td>${r.requester}</td>
+      <td>${r.volume||'-'}</td>
+      <td>${r.unit||'-'}</td>
+      <td class="amount-cell">&yen;${fmt(r.amount)}</td>
+      <td><span class="tag ${pTag}">${r.priority}</span> <span class="tag ${sTag}">${sText}</span></td>
+    </tr>`;
+  });
+  document.getElementById('tableBody').innerHTML = html;
+  const totalAmt = filtered.reduce((s,r)=>s+r.amount,0);
+  document.getElementById('tableFoot').innerHTML = `<tr class="summary-row"><td colspan="6">合计</td><td class="amount-cell">&yen;${fmt(totalAmt)}</td><td>${filtered.length}条</td></tr>`;
+  document.getElementById('tableCount').textContent = `(共${filtered.length}条)`;
+}
+
+function render() {
+  const filtered = getFiltered();
+  renderCards(filtered);
+  renderProgress(filtered);
+  renderCharts(filtered);
+  renderTable(filtered);
+}
+
+['monthFilter','projectFilter','requesterFilter','statusFilter'].forEach(id => document.getElementById(id).addEventListener('change', render));
+document.getElementById('searchBox').addEventListener('input', render);
+render();
+</script>
+</body>
+</html>
