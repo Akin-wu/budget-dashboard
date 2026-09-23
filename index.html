@@ -14,6 +14,10 @@ body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f
 .controls { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
 .controls select, .controls input { padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; background: #fff; }
 .controls select:focus, .controls input:focus { outline: none; border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.1); }
+.month-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.month-chip { padding: 7px 14px; border: 1px solid #d9d9d9; border-radius: 16px; font-size: 13px; background: #fff; cursor: pointer; user-select: none; transition: all 0.15s; }
+.month-chip:hover { border-color: #1890ff; color: #1890ff; }
+.month-chip.active { background: #1890ff; border-color: #1890ff; color: #fff; font-weight: 600; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 .card .label { font-size: 13px; color: #888; margin-bottom: 8px; }
@@ -61,11 +65,11 @@ tr:hover td { background: #e6f7ff; }
 <body>
 <div class="header">
 <h1>ADS黑贤组 预算进度看板</h1>
-<p>月度预算：26万元 | 数据来源：任务汇总表「7月往后」sheet | 最后刷新：2026-09-23 14:42</p>
+<p>月度预算：26万元 | 数据来源：任务汇总表「7月往后」sheet | 最后刷新：2026-09-23 15:32</p>
 </div>
 
 <div class="controls">
-<select id="monthFilter"><option value="all">全部月份</option></select>
+<div class="month-chips" id="monthChips"></div>
 <select id="projectFilter"><option value="all">全部子项目</option></select>
 <select id="requesterFilter"><option value="all">全部提需人</option></select>
 <select id="statusFilter"><option value="all">全部状态</option></select>
@@ -107,19 +111,34 @@ const projects = [...new Set(RAW.map(r=>r.project).filter(Boolean))].sort();
 const requesters = [...new Set(RAW.map(r=>r.requester).filter(Boolean))].sort();
 const statuses = [...new Set(RAW.map(r=>r.status).filter(Boolean))].sort();
 
-months.forEach(m => document.getElementById('monthFilter').innerHTML += `<option value="${m}">${m}</option>`);
+let selMonths = new Set();
+function renderMonthChips() {
+  const box = document.getElementById('monthChips');
+  let html = `<span class="month-chip ${selMonths.size===0?'active':''}" data-m="__all">全部月份</span>`;
+  months.forEach(m => { html += `<span class="month-chip ${selMonths.has(m)?'active':''}" data-m="${m}">${m}</span>`; });
+  box.innerHTML = html;
+}
+renderMonthChips();
+document.getElementById('monthChips').addEventListener('click', e => {
+  const chip = e.target.closest('.month-chip');
+  if (!chip) return;
+  const m = chip.dataset.m;
+  if (m === '__all') { selMonths.clear(); }
+  else { selMonths.has(m) ? selMonths.delete(m) : selMonths.add(m); }
+  renderMonthChips();
+  render();
+});
 projects.forEach(p => document.getElementById('projectFilter').innerHTML += `<option value="${p}">${p}</option>`);
 requesters.forEach(r => document.getElementById('requesterFilter').innerHTML += `<option value="${r}">${r}</option>`);
 statuses.forEach(s => document.getElementById('statusFilter').innerHTML += `<option value="${s}">${s}</option>`);
 
 function getFiltered() {
-  const mf = document.getElementById('monthFilter').value;
   const pf = document.getElementById('projectFilter').value;
   const rf = document.getElementById('requesterFilter').value;
   const sf = document.getElementById('statusFilter').value;
   const q = document.getElementById('searchBox').value.toLowerCase();
   return RAW.filter(r => {
-    if (mf !== 'all' && r.month !== mf) return false;
+    if (selMonths.size > 0 && !selMonths.has(r.month)) return false;
     if (pf !== 'all' && r.project !== pf) return false;
     if (rf !== 'all' && r.requester !== rf) return false;
     if (sf !== 'all' && r.status !== sf) return false;
@@ -129,13 +148,13 @@ function getFiltered() {
 }
 
 function fmt(n) { return n.toLocaleString('zh-CN', {minimumFractionDigits:0, maximumFractionDigits:2}); }
+function activeMonths() { return selMonths.size > 0 ? months.filter(m=>selMonths.has(m)) : months; }
 
 function renderCards(filtered) {
   const total = filtered.reduce((s,r)=>s+r.amount, 0);
   const settled = filtered.filter(r=>r.settled==='是').reduce((s,r)=>s+r.amount, 0);
   const pending = total - settled;
-  const monthFilter = document.getElementById('monthFilter').value;
-  const budget = monthFilter === 'all' ? BUDGET * months.length : BUDGET;
+  const budget = BUDGET * activeMonths().length;
   const rate = budget > 0 ? (total/budget*100) : 0;
   document.getElementById('summaryCards').innerHTML = `
     <div class="card blue"><div class="label">已使用金额</div><div class="value">&yen;${fmt(total)}</div><div class="sub">共 ${filtered.length} 条任务</div></div>
@@ -148,8 +167,7 @@ function renderCards(filtered) {
 
 function renderProgress(filtered) {
   const container = document.getElementById('progressBars');
-  const monthFilter = document.getElementById('monthFilter').value;
-  const showMonths = monthFilter === 'all' ? months : [monthFilter];
+  const showMonths = activeMonths();
   let html = '';
   showMonths.forEach(m => {
     const mTotal = filtered.filter(r=>r.month===m).reduce((s,r)=>s+r.amount, 0);
@@ -178,8 +196,7 @@ function renderCharts(filtered) {
     options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: {size:11} } } } }
   });
 
-  const monthFilter = document.getElementById('monthFilter').value;
-  const showMonths = monthFilter === 'all' ? months : [monthFilter];
+  const showMonths = activeMonths();
   const actualByMonth = showMonths.map(m => filtered.filter(r=>r.month===m).reduce((s,r)=>s+r.amount, 0));
 
   if(barChart) barChart.destroy();
@@ -230,7 +247,7 @@ function render() {
   renderTable(filtered);
 }
 
-['monthFilter','projectFilter','requesterFilter','statusFilter'].forEach(id => document.getElementById(id).addEventListener('change', render));
+['projectFilter','requesterFilter','statusFilter'].forEach(id => document.getElementById(id).addEventListener('change', render));
 document.getElementById('searchBox').addEventListener('input', render);
 render();
 </script>
