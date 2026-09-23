@@ -62,12 +62,30 @@ tr:hover td { background: #e6f7ff; }
 .amount-cell { font-weight: 600; font-family: "SF Mono", "Consolas", monospace; }
 .summary-row td { font-weight: 700; background: #fafafa !important; border-top: 2px solid #e8e8e8; }
 .legend-hint { font-size: 12px; color: #999; margin-top: 8px; }
+.admin-toggle { position: absolute; top: 20px; right: 24px; padding: 6px 14px; border: 1px solid #d9d9d9; border-radius: 6px; background: #fff; font-size: 13px; cursor: pointer; }
+.admin-toggle:hover { border-color: #722ed1; color: #722ed1; }
+.admin-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: #f9f0ff; border: 1px solid #d3adf7; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+.admin-bar input { padding: 7px 10px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 13px; width: 260px; }
+.admin-bar button { padding: 7px 14px; border: none; border-radius: 6px; background: #722ed1; color: #fff; font-size: 13px; cursor: pointer; }
+.admin-bar button.secondary { background: #fff; color: #722ed1; border: 1px solid #d3adf7; }
+.admin-bar .msg { font-size: 12px; color: #722ed1; }
+td[contenteditable="true"] { background: #fffbe6; outline: 1px dashed #faad14; cursor: text; }
+td[contenteditable="true"]:focus { background: #fff; outline: 2px solid #1890ff; }
 </style>
 </head>
 <body>
 <div class="header">
 <h1>ADS黑贤组 预算进度看板</h1>
-<p>月度预算：26万元 | 数据来源：任务汇总表「7月往后」sheet | 最后刷新：2026-09-23 15:48</p>
+<p>月度预算：26万元 | 数据来源：任务汇总表「7月往后」sheet | 最后刷新：2026-09-23 17:39</p>
+<button class="admin-toggle" id="adminToggle">管理员模式</button>
+</div>
+
+<div class="admin-bar" id="adminBar" style="display:none;">
+<input type="password" id="ghToken" placeholder="粘贴你的GitHub token以启用编辑">
+<button id="adminEnter">进入编辑</button>
+<button id="adminSave" style="display:none;">保存并发布</button>
+<button id="adminExit" class="secondary" style="display:none;">退出编辑</button>
+<span class="msg" id="adminMsg"></span>
 </div>
 
 <div class="controls">
@@ -105,8 +123,14 @@ tr:hover td { background: #e6f7ff; }
 </div>
 
 <script>
+/*DATA-START*/
 const RAW = [{"date":"2026-06-16","month":"2026-06","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"编辑数据清洗","priority":"P1","requester":"君未","volume":"约9万多","unit":"","status":"待结算","amount":13297.07,"settled":""},{"date":"2026-06-29","month":"2026-06","project":"coco视频项目","detail":"商品一致性","taskName":"商品一致性标注-3output-0630","priority":"P1","requester":"李岁缠","volume":"5397","unit":"图","status":"已结算","amount":10794.0,"settled":"是"},{"date":"2026-06-29","month":"2026-06","project":"淘宝千问穿搭项目","detail":"服装上身效果测试","taskName":"服饰上身评测","priority":"P1","requester":"郭璟","volume":"127","unit":"人时","status":"已结算","amount":381.0,"settled":"是"},{"date":"2026-07-01","month":"2026-07","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性标注 单图tryon","priority":"P1","requester":"临宙","volume":"1178","unit":"图","status":"已结算","amount":2650.5,"settled":"是"},{"date":"2026-07-01","month":"2026-07","project":"绘蛙服饰类数据标注","detail":"长度变化数据评测","taskName":"长度变化数据可用性标注","priority":"P1","requester":"玄彻","volume":"41849","unit":"图","status":"已结算","amount":5231.125,"settled":"是"},{"date":"2026-07-01","month":"2026-07","project":"淘宝千问穿搭项目","detail":"生图评测","taskName":"生图评测","priority":"P0","requester":"福按","volume":"","unit":"人时","status":"已结算","amount":4560.0,"settled":"是"},{"date":"2026-07-07","month":"2026-07","project":"绘蛙服饰类数据标注","detail":"长度变化数据评测","taskName":"长度变化数据可用性标注第二批","priority":"P0","requester":"玄彻","volume":"31752","unit":"图","status":"已结算","amount":3969.0,"settled":"是"},{"date":"2026-07-14","month":"2026-07","project":"coco视频项目","detail":"商品一致性","taskName":"一致性标注-双图输入-单人标注-0714","priority":"P1","requester":"李岁缠","volume":"1852","unit":"图","status":"已结算","amount":3704.0,"settled":"是"},{"date":"2026-07-14","month":"2026-07","project":"coco视频项目","detail":"商品一致性","taskName":"一致性标注-单图输入-单人标注-0714","priority":"P1","requester":"李岁缠","volume":"1146","unit":"图","status":"已结算","amount":2292.0,"settled":"是"},{"date":"2026-07-17","month":"2026-07","project":"淘宝千问穿搭项目","detail":"视频评测","taskName":"商品&模特替换 评测","priority":"P1","requester":"吉芈","volume":"128","unit":"人时","status":"已结算","amount":960.0,"settled":"是"},{"date":"2026-07-17","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0716-数据清洗-Tab2-0702_matched_clean","priority":"P1","requester":"李岁缠","volume":"9816","unit":"图","status":"已结算","amount":11779.2,"settled":"是"},{"date":"2026-07-17","month":"2026-07","project":"coco视频项目","detail":"服饰场景判断","taskName":"0717-TAB2-服饰人物场景判断人物","priority":"P1","requester":"沐水","volume":"726","unit":"图","status":"已结算","amount":508.2,"settled":"是"},{"date":"2026-07-20","month":"2026-07","project":"绘蛙服饰类数据标注","detail":"一致性和坐标判断","taskName":"一致性和坐标逻辑判断","priority":"P1","requester":"玄彻","volume":"42498","unit":"图","status":"已结算","amount":8924.58,"settled":"是"},{"date":"2026-07-20","month":"2026-07","project":"绘蛙服饰类数据标注","detail":"一致性和坐标判断","taskName":"仅坐标判断修正","priority":"P1","requester":"玄彻","volume":"待定","unit":"图","status":"已结算","amount":19044.72,"settled":"是"},{"date":"2026-07-20","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0720-数据清洗-tab2_gpt_0701_v2","priority":"P1","requester":"李岁缠","volume":"4681","unit":"图","status":"已结算","amount":5617.2,"settled":"是"},{"date":"2026-07-20","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0717-数据清洗-Feeds_single_image_2k","priority":"P1","requester":"李岁缠","volume":"2228*2","unit":"图","status":"已结算","amount":6684.0,"settled":"是"},{"date":"2026-07-23","month":"2026-07","project":"绘蛙服饰类数据标注","detail":"数据配对","taskName":"高清面料配对数据标注","priority":"P1","requester":"玄彻","volume":"125428","unit":"图","status":"已结算","amount":20946.476,"settled":"是"},{"date":"2026-07-22","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0722-数据清洗-Feeds_Product_Scene_Genenerate","priority":"P1","requester":"李岁缠","volume":"4693*2","unit":"图","status":"已结算","amount":14079.0,"settled":"是"},{"date":"2026-07-22","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0722-数据清洗-Feeds_scene_xhs_style_single_recaption","priority":"P1","requester":"李岁缠","volume":"985*2","unit":"图","status":"已结算","amount":2955.0,"settled":"是"},{"date":"2026-07-22","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0722-数据清洗-tab2_SFT3","priority":"P1","requester":"李岁缠","volume":"8767*2","unit":"图","status":"已结算","amount":21040.8,"settled":"是"},{"date":"2026-07-24","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0724-数据清洗-Feeds_single_image_7k_recaption","priority":"P1","requester":"李岁缠","volume":"7262*2","unit":"图","status":"已结算","amount":21786.0,"settled":"是"},{"date":"2026-07-28","month":"2026-07","project":"coco视频项目","detail":"数据清洗","taskName":"0728-数据清洗-tab2_0723_highres","priority":"P1","requester":"李岁缠","volume":"9303","unit":"图","status":"已结算","amount":16745.4,"settled":"是"},{"date":"2026-08-03","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0803-Subject_Driven_Generate_SR_single","priority":"P1","requester":"李岁缠","volume":"7245*2","unit":"图","status":"待结算","amount":9600.0,"settled":""},{"date":"2026-08-03","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0803-sellerpoint_GptImage2_passed","priority":"P1","requester":"李岁缠","volume":"2891*2","unit":"图","status":"待结算","amount":21735.0,"settled":""},{"date":"2026-07-28","month":"2026-07","project":"coco视频项目","detail":"商品一致性","taskName":"商品一致性标注-078-top3000_variance","priority":"P1","requester":"李岁缠","volume":"500","unit":"图","status":"已结算","amount":1000.0,"settled":"是"},{"date":"2026-07-29","month":"2026-07","project":"coco视频项目","detail":"商品一致性","taskName":"商品一致性标注-0729-top3000_variance","priority":"P1","requester":"李岁缠","volume":"2000","unit":"","status":"待结算","amount":4000.0,"settled":""},{"date":"2026-07-31","month":"2026-07","project":"coco视频项目","detail":"商品一致性","taskName":"0731商品一致性标注","priority":"P1","requester":"李岁缠","volume":"5877","unit":"图","status":"已结算","amount":11754.0,"settled":"是"},{"date":"2026-07-31","month":"2026-07","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性标注-单图Tryon-v2-0730","priority":"P1","requester":"临宙","volume":"1020","unit":"图","status":"已结算","amount":1530.0,"settled":"是"},{"date":"2026-08-06","month":"2026-08","project":"绘蛙服饰类数据标注","detail":"服装穿法标注","taskName":"服装穿法标注","priority":"P0","requester":"玄彻","volume":"36017","unit":"图","status":"已结算","amount":4502.125,"settled":"是"},{"date":"2026-08-06","month":"2026-08","project":"淘宝千问穿搭项目","detail":"视频评测","taskName":"多模型评测","priority":"P0","requester":"吉芈","volume":"50","unit":"人时","status":"已结算","amount":600.0,"settled":"是"},{"date":"2026-08-10","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0810-sellerpoint_GptImage2_v2_passed","priority":"P1","requester":"李岁缠","volume":"5719*2","unit":"图","status":"待结算","amount":17157.0,"settled":""},{"date":"2026-08-10","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0810-Subject_Driven_Generate_SR","priority":"P1","requester":"李岁缠","volume":"8833*2","unit":"图","status":"待结算","amount":26499.0,"settled":""},{"date":"2026-08-06","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性标注-单图tryon-ai提示-0806","priority":"P1","requester":"临宙","volume":"3931","unit":"图","status":"已结算","amount":5896.5,"settled":"是"},{"date":"2026-08-06","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"0806-feeds-noconsis","priority":"P1","requester":"李岁缠","volume":"766","unit":"图","status":"已结算","amount":1532.0,"settled":"是"},{"date":"2026-08-06","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"consistency_dpo0731","priority":"P1","requester":"李岁缠","volume":"1877","unit":"图","status":"已结算","amount":3754.0,"settled":"是"},{"date":"2026-08-06","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"0806_product_bg_sellerpoint","priority":"P1","requester":"李岁缠","volume":"1488","unit":"图","status":"已结算","amount":2976.0,"settled":"是"},{"date":"2026-08-07","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"0807_consistency_dpo3out","priority":"P1","requester":"李岁缠","volume":"3126","unit":"图","status":"已结算","amount":6252.0,"settled":"是"},{"date":"2026-08-11","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性标注-单图tryon-ai提示-0811","priority":"P1","requester":"临宙","volume":"6985","unit":"图","status":"已结算","amount":10477.5,"settled":"是"},{"date":"2026-08-13","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"fv3_T1350_B_gt_gemini_v4fmt","priority":"P1","requester":"李岁缠","volume":"2643","unit":"图","status":"待结算","amount":5286.0,"settled":""},{"date":"2026-08-13","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"fv3_T1350_A_infer_gemini_v4fmt","priority":"P1","requester":"李岁缠","volume":"2658","unit":"图","status":"待结算","amount":5316.0,"settled":""},{"date":"2026-08-14","month":"2026-08","project":"淘宝千问穿搭项目","detail":"配对差异标注需求","taskName":"配对差异标注需求","priority":"P1","requester":"郭璟","volume":"10000","unit":"图","status":"已结算","amount":20000.0,"settled":"是"},{"date":"2026-08-17","month":"2026-08","project":"绘蛙服饰类数据标注","detail":"20260817难负例标注","taskName":"20260817难负例标注","priority":"P1","requester":"开元","volume":"1000","unit":"图","status":"已结算","amount":330.0,"settled":"是"},{"date":"2026-08-19","month":"2026-08","project":"coco视频项目","detail":"文字标注","taskName":"文字标注1","priority":"P1","requester":"潘恒","volume":"1921","unit":"图","status":"已结算","amount":1152.6,"settled":"是"},{"date":"2026-08-19","month":"2026-08","project":"coco视频项目","detail":"文字标注","taskName":"文字标注2","priority":"P1","requester":"潘恒","volume":"2567","unit":"图","status":"已结算","amount":1540.2,"settled":"是"},{"date":"2026-08-19","month":"2026-08","project":"coco视频项目","detail":"文字标注","taskName":"文字标注3","priority":"P1","requester":"潘恒","volume":"1571","unit":"图","status":"已结算","amount":942.6,"settled":"是"},{"date":"2026-08-20","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0820-sellerpoint_withRef_GPT_passed","priority":"P1","requester":"李岁缠","volume":"977*2","unit":"图","status":"待结算","amount":2931.0,"settled":""},{"date":"2026-08-20","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0820-Subject_Driven_Generate_NanoPro_2K_passed","priority":"P1","requester":"李岁缠","volume":"561*2","unit":"图","status":"待结算","amount":1683.0,"settled":""},{"date":"2026-08-20","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0810-sellerpoint_GPT_mingcheng_passed","priority":"P1","requester":"李岁缠","volume":"846*2","unit":"图","status":"待结算","amount":2538.0,"settled":""},{"date":"2026-08-20","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0820-Subject_Driven_Generate_NanoPro_passed","priority":"P1","requester":"李岁缠","volume":"939*2","unit":"图","status":"待结算","amount":2817.0,"settled":""},{"date":"2026-08-20","month":"2026-08","project":"coco视频项目","detail":"商品卖点","taskName":"sellerpoint-0820-sellerpoint_xhs_double_passed","priority":"P1","requester":"李岁缠","volume":"948*2","unit":"图","status":"待结算","amount":2844.0,"settled":""},{"date":"2026-08-17","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性TryOn任务标注-0817","priority":"P1","requester":"临宙","volume":"3169","unit":"图","status":"待结算","amount":4753.5,"settled":""},{"date":"2026-08-20","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性标注-单图Tryon-v2-0820","priority":"P1","requester":"临宙","volume":"540*3","unit":"图","status":"待结算","amount":2430.0,"settled":""},{"date":"2026-08-21","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"all_data_complex_B_gt","priority":"P1","requester":"李岁缠","volume":"3575","unit":"图","status":"待结算","amount":7150.0,"settled":""},{"date":"2026-08-24","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性tryon数据标注-0824","priority":"P1","requester":"临宙","volume":"2812*2","unit":"图","status":"待结算","amount":8436.0,"settled":""},{"date":"2026-08-24","month":"2026-08","project":"coco视频项目","detail":"商品一致性","taskName":"all_data_complex_A_dpo_gemini","priority":"P1","requester":"李岁缠","volume":"3569","unit":"图","status":"待结算","amount":7138.0,"settled":""},{"date":"2026-08-26","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性tryon数据标注-0826 - 下装","priority":"P1","requester":"临宙","volume":"1500*2","unit":"图","status":"待结算","amount":4500.0,"settled":""},{"date":"2026-08-24","month":"2026-08","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"编辑数据不通过拉框","priority":"P1","requester":"君未","volume":"19942","unit":"","status":"待结算","amount":9971.0,"settled":""},{"date":"2026-08-24","month":"2026-08","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"20260602_residue_data_annotation编辑数据新增属性判断","priority":"P1","requester":"君未","volume":"1941","unit":"","status":"待结算","amount":517.27,"settled":""},{"date":"2026-08-27","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性数据标注 - 0827 - 上装1k","priority":"P1","requester":"临宙","volume":"1000*2","unit":"","status":"待结算","amount":3000.0,"settled":""},{"date":"2026-08-28","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性数据标注 - 0828 - 上装2k","priority":"P1","requester":"临宙","volume":"2000*2","unit":"","status":"待结算","amount":6000.0,"settled":""},{"date":"2026-08-31","month":"2026-08","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"20260610_fit_data_pose_filtered_annotation编辑新增属性判断","priority":"P1","requester":"君未","volume":"6751","unit":"","status":"待结算","amount":1775.77,"settled":""},{"date":"2026-08-31","month":"2026-08","project":"coco视频项目","detail":"数据清洗","taskName":"sellerpoint-0831-绘蛙线上_参考图生卖点_df_2026080","priority":"P1","requester":"李岁缠","volume":"11032*2","unit":"","status":"待结算","amount":33096.0,"settled":""},{"date":"2026-08-31","month":"2026-08","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性数据标注 - 0831 - 上装","priority":"P1","requester":"临宙","volume":"3231*2","unit":"","status":"待结算","amount":9693.0,"settled":""},{"date":"2026-09-01","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260617_print_data_pose_filtered_annotation编辑新增属性判断","priority":"P1","requester":"君未","volume":"2766","unit":"","status":"待结算","amount":729.82,"settled":""},{"date":"2026-09-01","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260613_hallucination_data_pose_filtered_annotation编辑新增属性判断","priority":"P1","requester":"君未","volume":"5491","unit":"","status":"待结算","amount":1463.77,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"商品一致性","taskName":"muchen-data-positive","priority":"P1","requester":"张骞","volume":"871","unit":"","status":"待结算","amount":1742.0,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"数据清洗-poster-0902","priority":"P1","requester":"李岁缠","volume":"3279*2","unit":"","status":"待结算","amount":9837.0,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"数据清洗-mixedit-0902-mix_edit_part1_merged","priority":"P1","requester":"李岁缠","volume":"13974","unit":"","status":"待结算","amount":25153.2,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"数据清洗-mixedit-0902-mix_edit_part2_merged","priority":"P1","requester":"李岁缠","volume":"1761","unit":"","status":"待结算","amount":3169.8,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"数据清洗-商品背景注入-0902-商品背景注入_merged","priority":"P1","requester":"李岁缠","volume":"3460*2","unit":"","status":"待结算","amount":10380.0,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"数据清洗-huiwa-nanopro-0902","priority":"P1","requester":"李岁缠","volume":"7802","unit":"","status":"待结算","amount":14043.6,"settled":""},{"date":"2026-09-02","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"数据清洗-0902-换脸-换模特","priority":"P1","requester":"李岁缠","volume":"4598*2","unit":"","status":"待结算","amount":15817.12,"settled":""},{"date":"2026-09-04","month":"2026-09","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性标注 - 0904 - 裙装1k - testcase","priority":"P1","requester":"临宙","volume":"1000*2","unit":"","status":"待结算","amount":2340.0,"settled":""},{"date":"2026-09-07","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260616_functional_data_pose_filtered_annotation编辑清洗新增属性判断","priority":"P1","requester":"君未","volume":"5796","unit":"","status":"待结算","amount":1505.12,"settled":""},{"date":"2026-09-07","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260618_artifact_data_pose_filtered_annotation编辑清洗新增属性判断","priority":"P1","requester":"君未","volume":"3233","unit":"","status":"待结算","amount":859.71,"settled":""},{"date":"2026-09-07","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260612_fine_data_pose_filtered_annotation编辑新增属性判断","priority":"P1","requester":"君未","volume":"3606","unit":"","status":"待结算","amount":954.42,"settled":""},{"date":"2026-09-07","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260614_mirror_data_pose_filtered_annotation编辑新增属性判断","priority":"P1","requester":"君未","volume":"2674","unit":"","status":"待结算","amount":704.58,"settled":""},{"date":"2026-09-07","month":"2026-09","project":"绘蛙服饰类数据标注","detail":"编辑数据清洗","taskName":"tryon_badcase_gen_data_20260615_noreplace_data_pose_filtered_annotation编辑新增属性判断","priority":"P1","requester":"君未","volume":"2278","unit":"","status":"待结算","amount":593.26,"settled":""},{"date":"2026-09-08","month":"2026-09","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性tryon数据标注-0908 - 下装v2","priority":"P1","requester":"临宙","volume":"4500*2","unit":"","status":"待结算","amount":10530.0,"settled":""},{"date":"2026-09-10","month":"2026-09","project":"coco视频项目","detail":"[RL错字识别]标注","taskName":"[RL错字识别]标注","priority":"P1","requester":"曾凡高","volume":"1849","unit":"","status":"进行中","amount":500.0,"settled":""},{"date":"2026-09-15","month":"2026-09","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性tryon数据标注-0915 - 裙装","priority":"P1","requester":"临宙","volume":"5000*2","unit":"","status":"已交付","amount":11700.0,"settled":""},{"date":"2026-09-17","month":"2026-09","project":"coco视频项目","detail":"数据清洗","taskName":"文生卖点-huiwa-线上采纳-df_20260909_70972e","priority":"P1","requester":"李岁缠","volume":"8045*2","unit":"","status":"进行中","amount":27674.8,"settled":""},{"date":"2026-09-19","month":"2026-09","project":"coco视频项目","detail":"服饰一致性","taskName":"一致性tryon数据标注-0919 - 男上装","priority":"P1","requester":"临宙","volume":"4000*2","unit":"","status":"进行中","amount":9360.0,"settled":""},{"date":"2026-09-21","month":"2026-09","project":"coco视频项目","detail":"商品一致性","taskName":"关注AI账号-0901-0921-head5k","priority":"P1","requester":"曾凡高","volume":"5000*2","unit":"","status":"进行中","amount":20000.0,"settled":""}];
+/*DATA-END*/
 const BUDGET = 260000;
+const GH_OWNER = 'Akin-wu';
+const GH_REPO = 'budget-dashboard';
+const GH_API = 'https://api.github.com';
+let adminMode = false;
 
 const months = [...new Set(RAW.map(r=>r.month).filter(Boolean))].sort();
 const projects = [...new Set(RAW.map(r=>r.project).filter(Boolean))].sort();
@@ -229,8 +253,10 @@ function renderCharts(filtered) {
 
 function renderTable(filtered) {
   const sorted = [...filtered].sort((a,b) => a.date.localeCompare(b.date));
+  const ed = (field, idx) => adminMode ? ` contenteditable="true" data-idx="${idx}" data-field="${field}"` : '';
   let html = '';
   sorted.forEach(r => {
+    const idx = RAW.indexOf(r);
     const pTag = r.priority === 'P0' ? 'tag-p0' : 'tag-p1';
     let sTag = 'tag-pending', sText = r.status;
     if (r.settled === '是') { sTag = 'tag-settled'; }
@@ -238,13 +264,13 @@ function renderTable(filtered) {
     else if (r.status === '已交付') { sTag = 'tag-delivered'; }
     html += `<tr>
       <td>${r.date}</td>
-      <td>${r.project}</td>
-      <td title="${r.taskName}">${r.taskName.length>35 ? r.taskName.slice(0,35)+'...' : r.taskName}</td>
-      <td>${r.requester}</td>
-      <td>${r.volume||'-'}</td>
+      <td${ed('project', idx)}>${r.project}</td>
+      <td${ed('taskName', idx)} title="${r.taskName}">${adminMode ? r.taskName : (r.taskName.length>35 ? r.taskName.slice(0,35)+'...' : r.taskName)}</td>
+      <td${ed('requester', idx)}>${r.requester}</td>
+      <td${ed('volume', idx)}>${r.volume||'-'}</td>
       <td>${r.unit||'-'}</td>
-      <td class="amount-cell">&yen;${fmt(r.amount)}</td>
-      <td><span class="tag ${pTag}">${r.priority}</span> <span class="tag ${sTag}">${sText}</span></td>
+      <td class="amount-cell"${ed('amount', idx)}>${adminMode ? r.amount : '&yen;'+fmt(r.amount)}</td>
+      <td><span class="tag ${pTag}">${r.priority}</span> <span class="tag ${sTag}"${ed('status', idx)}>${sText}</span></td>
     </tr>`;
   });
   document.getElementById('tableBody').innerHTML = html;
@@ -260,6 +286,72 @@ function render() {
   renderCharts(filtered);
   renderTable(filtered);
 }
+
+// ===== 管理员模式 =====
+function refreshSummaries() { const f = getFiltered(); renderCards(f); renderProgress(f); renderCharts(f); }
+
+document.getElementById('adminToggle').addEventListener('click', () => {
+  const bar = document.getElementById('adminBar');
+  bar.style.display = bar.style.display === 'none' ? 'flex' : 'none';
+});
+
+document.getElementById('adminEnter').addEventListener('click', () => {
+  const token = document.getElementById('ghToken').value.trim();
+  if (!token) { document.getElementById('adminMsg').textContent = '请先粘贴token'; return; }
+  sessionStorage.setItem('gh_token', token);
+  adminMode = true;
+  document.getElementById('adminEnter').style.display = 'none';
+  document.getElementById('ghToken').style.display = 'none';
+  document.getElementById('adminSave').style.display = '';
+  document.getElementById('adminExit').style.display = '';
+  document.getElementById('adminMsg').textContent = '编辑模式已开启：点击黄色单元格修改，改完点「保存并发布」';
+  render();
+});
+
+document.getElementById('adminExit').addEventListener('click', () => {
+  adminMode = false;
+  document.getElementById('adminEnter').style.display = '';
+  document.getElementById('ghToken').style.display = '';
+  document.getElementById('adminSave').style.display = 'none';
+  document.getElementById('adminExit').style.display = 'none';
+  document.getElementById('adminMsg').textContent = '';
+  render();
+});
+
+document.getElementById('tableBody').addEventListener('input', e => {
+  const cell = e.target.closest('[contenteditable="true"]');
+  if (!cell) return;
+  const idx = +cell.dataset.idx, field = cell.dataset.field;
+  if (!RAW[idx]) return;
+  if (field === 'amount') { RAW[idx].amount = parseFloat(cell.innerText.replace(/[,¥]/g,'')) || 0; }
+  else { RAW[idx][field] = cell.innerText.trim(); }
+  refreshSummaries();
+});
+document.getElementById('tableBody').addEventListener('focusout', e => {
+  if (e.target.closest && e.target.closest('[contenteditable="true"]')) render();
+});
+
+document.getElementById('adminSave').addEventListener('click', () => {
+  const token = sessionStorage.getItem('gh_token');
+  const msg = document.getElementById('adminMsg');
+  if (!token) { msg.textContent = 'token缺失，请重新进入编辑'; return; }
+  msg.textContent = '保存中...';
+  fetch(location.href).then(r => r.text()).then(src => {
+    const newRaw = 'const RAW = ' + JSON.stringify(RAW) + ';';
+    const updated = src.replace(/\/\*DATA-START\*\/[\s\S]*?\/\*DATA-END\*\//, '/*DATA-START*/\n' + newRaw + '\n/*DATA-END*/');
+    if (updated === src) { msg.textContent = '未找到数据块，保存失败'; return; }
+    const b64 = btoa(unescape(encodeURIComponent(updated)));
+    return fetch(GH_API + '/repos/' + GH_OWNER + '/' + GH_REPO + '/contents/index.html', { headers: { Authorization: 'token ' + token } })
+      .then(r => r.ok ? r.json() : null).then(meta => {
+        const payload = { message: 'admin edit dashboard', content: b64, branch: 'main' };
+        if (meta && meta.sha) payload.sha = meta.sha;
+        return fetch(GH_API + '/repos/' + GH_OWNER + '/' + GH_REPO + '/contents/index.html', { method: 'PUT', headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      }).then(r => {
+        if (r.ok) { msg.textContent = '✅ 已保存，约30秒后全员可见（刷新页面确认）'; }
+        else { r.json().then(e => msg.textContent = '保存失败: ' + (e.message || r.status)); }
+      });
+  }).catch(err => msg.textContent = '保存失败: ' + err);
+});
 
 ['projectFilter','requesterFilter','statusFilter'].forEach(id => document.getElementById(id).addEventListener('change', render));
 document.getElementById('searchBox').addEventListener('input', render);
